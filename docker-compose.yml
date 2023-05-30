@@ -1,0 +1,41 @@
+version: '3'
+services:
+  rest_api:
+    build: .
+    container_name: django-rest
+    command: sh -c "/code/run.sh"
+    tty: true
+    stdin_open: true
+    volumes: 
+      - .:/code
+    ports:
+    - 8000:8000
+    networks:
+      - backend
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    image: mysql:8.0.21
+    container_name: db
+    command: --default-authentication-plugin=caching_sha2_password
+    ports:
+      - "32000:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+    volumes:
+      - ./db/django.sql:/docker-entrypoint-initdb.d/django.sql
+
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD", "mysqladmin" ,"ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+    cap_add:
+      - SYS_NICE  # CAP_SYS_NICE
+
+networks:
+  backend:
+    driver: bridge
